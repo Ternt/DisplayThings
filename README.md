@@ -6,13 +6,13 @@ analyzing and understanding assembly code, I realized something. I know
 nothing about Computers. 
 
 And so after my very first conscious thought, I decided to make this
-repository. The main goals of this repository are:
+repository. The main goals of this repository are to:
 - Get comfortable using CLI
 - Learn and understand computers through the use of CLI
 - Learn the tools such as cmake, git CLI 
 - Move away from using an IDE and towards editors like vim
 
-Side goals:
+Some side goals:
 - Apply knowledge using WebGL to OpenGL
 - Learn C++
 
