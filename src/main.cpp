@@ -1,7 +1,13 @@
 #include <stdio.h>
 
+// --------------------------- TODOs ---------------------------
+// finish cmake build so that it include glad and glfw.
+
 int main(){
-	return 0;
+	printf("hello world!");
+  return 0;
 }
+
+
 
 
