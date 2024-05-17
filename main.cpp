@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../include/glad/glad.h"
 
 // --------------------------- TODOs ---------------------------
 // finish cmake build so that it include glad and glfw.
