@@ -9,7 +9,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
-void girlfriendShenanigans();
+void AddShader(const char* shaderText);
 
 const unsigned int width = 800; 
 const unsigned int height = 600;
@@ -45,21 +45,67 @@ int main() {
 		printf("Error: Failed to initialize GLAD");
 		return -1;
 	}
+
+
+  std::string vertexSource;
+  const char* pVSFileName = "src/vert.glsl";
+  ReadFile(pVSFileName, vertexSource);
   
   // create a shader object
   // ----------------------
-  std::string vertexSource;
-  const char* pVSFileName = "src/vert.glsl";
+  AddShader(vertexSource.c_str());
 
-  ReadFile(pVSFileName, vertexSource);
+	// render loop
+  // -----------
+	while (!glfwWindowShouldClose(window)) {
 
+		// user input
+    // ----------
+		processInput(window);
+
+		// rendering commands
+    // ------------------
+		glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+
+  // glfw: terminate, clearing all previously allocated GLFW resources.
+  // ------------------------------------------------------------------
+	glfwTerminate();
+	return 0;
+}
+
+
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+}
+
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+	glViewport(0, 0, width, height);
+}
+
+
+// shader compilation: deals with the creation, compilation, and linking of shader object files to a shader program
+// ----------------------------------------------------------------------------------------------------------------
+void AddShader(const char* shaderText){
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  const GLchar* source = (const GLchar*) vertexSource.c_str();
+  
+  const GLchar* p[1];
+  p[0] = shaderText;
 
   GLint Lengths[1];
-  Lengths[0] = (GLint)strlen(source);
+  Lengths[0] = (GLint)strlen(shaderText);
 
-  glShaderSource(vertexShader, 1, &source, Lengths);
+  glShaderSource(vertexShader, 1, p, Lengths);
 
   // shader compilation and error handling 
   // -------------------------------------
@@ -81,51 +127,6 @@ int main() {
     // Use the infoLog as you see fit.
 
     // In this simple program, we'll just leave
-    return 0;
+    exit(1);
   }
-
-	// render loop
-  // -----------
-	while (!glfwWindowShouldClose(window)) {
-
-		// user input
-    // ----------
-		processInput(window);
-
-		// rendering commands
-    // ------------------
-		glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-
-  girlfriendShenanigans();
-  // glfw: terminate, clearing all previously allocated GLFW resources.
-  // ------------------------------------------------------------------
-	glfwTerminate();
-	return 0;
 }
-
-
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow* window) {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, true);
-	}
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-	glViewport(0, 0, width, height);
-}
-
-// gloglog 3000
-void girlfriendShenanigans() {
-  std::cout << "glog glog\n";
-}
-
