@@ -362,5 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Ignore compile_flags.txt files
+# Custom ignored files 
 compile_flags.txt
+
