@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
@@ -48,10 +48,12 @@ int main() {
 	}
 
 
+	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+
   createShaderProgram();
 
 	// render loop
-  // -----------
+	// -----------
 	while (!glfwWindowShouldClose(window)) {
 
 		// user input
@@ -60,7 +62,6 @@ int main() {
 
 		// rendering commands
     // ------------------
-		glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glfwSwapBuffers(window);
@@ -103,10 +104,14 @@ void LoadShaderSource(const char* shaderText, GLuint shaderObject){
 }
 
 
-// shader compilation and error handling 
-// -------------------------------------
+
+
+
 const char* pVSFileName = "src/basic.vert";
 const char* pFSFileName = "src/basic.frag";
+
+// shader compilation and error handling 
+// -------------------------------------
 void createShaderProgram(){
 
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -117,11 +122,13 @@ void createShaderProgram(){
   std::string vertexSource, fragmentSource;
   if(!ReadFile(pVSFileName, vertexSource)){
     std::cout << "File was not read.\n";
+    std::cout << vertexSource;
     exit(1);
   }
 
-  if(!ReadFile(pVSFileName, vertexSource)){
+  if(!ReadFile(pFSFileName, fragmentSource)){
     std::cout << "File was not read.\n";
+    std::cout << fragmentSource;
     exit(1);
   }
 
@@ -132,14 +139,10 @@ void createShaderProgram(){
   glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
   if(isCompiled == GL_FALSE)
   {
-    GLint maxLength = 0;
-    glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
-
-    std::cout << "Vertex shader compiled unsuccessfully.\n";
-
     // The maxLength includes the NULL character
-    std::vector<GLchar> infoLog(maxLength);
-    glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &infoLog[0]);
+    char temp[256] = ""; 
+    glGetShaderInfoLog(vertexShader, 256, NULL, temp);
+    fprintf( stderr, "Compile failed:\n%s\n", temp);
 
     glDeleteShader(vertexShader);
 
@@ -153,14 +156,10 @@ void createShaderProgram(){
   glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
   if(isCompiled == GL_FALSE)
   {
-    GLint maxLength = 0;
-    glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
-
-    std::cout << "Fragment shader compiled unsuccessfully.\n";
-
     // The maxLength includes the NULL character
-    std::vector<GLchar> infoLog(maxLength);
-    glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, &infoLog[0]);
+    char temp[256] = ""; 
+    glGetShaderInfoLog(fragmentShader, 256, NULL, temp);
+    fprintf( stderr, "Compile failed:\n%s\n", temp);
 
     glDeleteShader(fragmentShader);
 
@@ -179,14 +178,13 @@ void createShaderProgram(){
   glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
   if (isLinked == GL_FALSE)
   {
-    GLint maxLength = 0;
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+    GLsizei maxLength = 4096;
+    GLchar infoLog[4096];
+    GLsizei actualLength;
 
-    // The maxLength includes the NULL character
-    std::vector<GLchar> infoLog(maxLength);
-    glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
-
-    std::cout << "Shaders linked unsuccessfully.\n";
+    glGetProgramInfoLog(program, maxLength, &actualLength, infoLog);
+    printf("Warning/Error in GLSL shader:\n");
+    printf("%s\n",infoLog);
 
     // We don't need the program anymore.
     glDeleteProgram(program);
