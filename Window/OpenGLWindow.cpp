@@ -105,10 +105,8 @@ void LoadShaderSource(const char* shaderText, GLuint shaderObject){
 
 
 
-
-
-const char* pVSFileName = "src/basic.vert";
-const char* pFSFileName = "src/basic.frag";
+const char* pVSFileName = "basic.vert";
+const char* pFSFileName = "basic.frag";
 
 // shader compilation and error handling 
 // -------------------------------------
