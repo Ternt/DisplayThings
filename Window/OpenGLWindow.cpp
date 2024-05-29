@@ -51,13 +51,17 @@ int main() {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
   GLuint program = createShaderProgram();
+  int vertexPositionLocation = glGetAttribLocation(program, "aPos");
+  int vertexColorLocation = glGetAttribLocation(program, "vColor");
+
+  std::cout << vertexColorLocation << "\n";
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
   float vertices[] = {
-    -0.5f, -0.5f, 0.0f, // left  
-    0.5f, -0.5f, 0.0f, // right 
-    0.0f,  0.5f, 0.0f  // top   
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+    -0.5f,  0.5f, 0.0f
   }; 
 
   unsigned int VBO, VAO;
@@ -69,14 +73,16 @@ int main() {
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(vertexPositionLocation, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(vertexPositionLocation);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
   // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
   glBindVertexArray(0);
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 
 	// render loop
@@ -223,6 +229,10 @@ GLuint createShaderProgram(){
 
     exit(1); 
   }
+
+  int numAttributes;
+  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &numAttributes);
+  std::cout << "Maximum number of vertex attributes supported: " << numAttributes << std::endl;
 
   // Always detach shaders after a successful link.
   glDetachShader(program, vertexShader);
