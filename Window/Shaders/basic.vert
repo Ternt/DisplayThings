@@ -4,9 +4,9 @@ layout(location = 1) in vec3 aColor;
 
 out vec3 vColor;
 
-uniform mat4 transform;
+uniform mat4 modelMatrix;
 
 void main() {
-  gl_Position = transform * vec4(aPos, 1.0);
+  gl_Position = modelMatrix * vec4(aPos, 1.0);
   vColor = aColor;
 }
