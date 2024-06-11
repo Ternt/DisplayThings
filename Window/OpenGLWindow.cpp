@@ -1,23 +1,26 @@
 #include <stdio.h>
 #include <iostream>
-#include <string>
 
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
 #include "../imgui/imgui.h" 
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_opengl3.h"
 
-#include <util.h>
+#include <util.h> 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
-void LoadShaderSource(const char* shaderText, GLuint shader);
-GLuint createShaderProgram();
 
+// current path is C:\Dev\DisplayThings\DisplayThings
+const char* pVSFileName = "src/Window/Shaders/basic.vert";
+const char* pFSFileName = "src/Window/Shaders/basic.frag";
 const unsigned int width = 800; 
 const unsigned int height = 600;
 
@@ -50,6 +53,8 @@ int main() {
     return -1;
   }
   glfwMakeContextCurrent(window);
+  //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetMouseButtonCallback(window, mouse_button_callback);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSwapInterval(1); // Enable vsync
 
@@ -66,20 +71,27 @@ int main() {
   ImGuiIO& io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Widget Docking
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
 
+
   // Setup Platform/Renderer backends
   ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init("#version 330");
 
-  // Setup OpenGL state machine
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  bool show_demo_window = false;
+  ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-  GLuint program = createShaderProgram();
+  // Initialization and configuration of OpenGL state machine 
+  // --------------------------------------------------------
+
+  GLuint program = createShaderProgram(pVSFileName, pFSFileName);
   unsigned int vertexPositionLocation = glGetAttribLocation(program, "aPos");
   unsigned int vertexColorLocation = glGetAttribLocation(program, "aColor");
-  unsigned int transformLocation = glGetUniformLocation(program, "transform");
+  unsigned int modelMatrixLocation = glGetUniformLocation(program, "modelMatrix");
 
   std::cout << "[" << vertexPositionLocation << ", " << vertexColorLocation << "]" << std::endl;
 
@@ -93,13 +105,13 @@ int main() {
   };
 
 
-  unsigned int positionVBO, VAO;
+  unsigned int VBO, colorVBO, VAO;
   glGenVertexArrays(1, &VAO);
-  glGenBuffers(1, &positionVBO);
+  glGenBuffers(1, &VBO);
   // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
   glBindVertexArray(VAO);
 
-  glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
   // position attribute
@@ -115,34 +127,70 @@ int main() {
   // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
   glBindVertexArray(0);
 
+
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-  // render loop
-  // -----------
   while (!glfwWindowShouldClose(window)) {
 
-    // user input
-    // ----------
     processInput(window);
+    glfwPollEvents();
 
-    // rendering commands
-    // ------------------
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    if (show_demo_window)
+      ImGui::ShowDemoWindow(&show_demo_window);
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    {
+      ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+      ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+      ImGui::End();
+    }
+
+
+    ImGui::Render();
+    int display_w, display_h;
+    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glm::mat4 transform = glm::mat4(1.0f);
-    transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
-    glUniformMatrix4fv(transformLocation, 1, GL_FALSE, glm::value_ptr(transform));
+    glm::mat4 modelMatrix = glm::mat4(1.0f);
+    modelMatrix = glm::rotate(modelMatrix, (float)glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
 
     glUseProgram(program);
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // Update and Render additional Platform Windows
+    // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
+    //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+      GLFWwindow* backup_current_context = glfwGetCurrentContext();
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+      glfwMakeContextCurrent(backup_current_context);
+    }
+
     glfwSwapBuffers(window);
-    glfwPollEvents();
   }
+
+
+  // Cleanup
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 
   // glfw: terminate, clearing all previously allocated GLFW resources.
   // ------------------------------------------------------------------
+  glfwDestroyWindow(window);
   glfwTerminate();
   return 0;
 }
@@ -162,117 +210,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
-
-// shader compilation: deals with the creation, compilation, and linking of shader object files to a shader program
-// ----------------------------------------------------------------------------------------------------------------
-void LoadShaderSource(const char* shaderText, GLuint shaderObject){
-
-  const GLchar* p[1];
-  p[0] = shaderText;
-
-  GLint Lengths[1];
-  Lengths[0] = (GLint)strlen(shaderText);
-
-  glShaderSource(shaderObject, 1, p, Lengths);
-}
-
-
-// current path is C:\Dev\DisplayThings\DisplayThings
-const char* pVSFileName = "src/Window/Shaders/basic.vert";
-const char* pFSFileName = "src/Window/Shaders/basic.frag";
-
-// shader compilation and error handling 
-// -------------------------------------
-GLuint createShaderProgram(){
-
-  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  GLint isCompiled = 0;
-
-
-  std::string vertexSource, fragmentSource;
-  if(!ReadFile(pVSFileName, vertexSource)){
-    std::cout << "File was not read.\n";
-    std::cout << vertexSource;
-    exit(1);
+// glfw: whenever a mouse press event has been registered this callback function executes
+// --------------------------------------------------------------------------------------
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+    printf("pressed");
   }
-
-  if(!ReadFile(pFSFileName, fragmentSource)){
-    std::cout << "File was not read.\n";
-    std::cout << fragmentSource;
-    exit(1);
-  }
-
-
-  LoadShaderSource(vertexSource.c_str(), vertexShader);
-  glCompileShader(vertexShader);
-
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
-  if(isCompiled == GL_FALSE)
-  {
-    // The maxLength includes the NULL character
-    char temp[256] = ""; 
-    glGetShaderInfoLog(vertexShader, 256, NULL, temp);
-    fprintf( stderr, "Compile failed:\n%s\n", temp);
-
-    glDeleteShader(vertexShader);
-
-    exit(1);
-  }
-
-
-  LoadShaderSource(fragmentSource.c_str(), fragmentShader);
-  glCompileShader(fragmentShader);
-
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
-  if(isCompiled == GL_FALSE)
-  {
-    // The maxLength includes the NULL character
-    char temp[256] = ""; 
-    glGetShaderInfoLog(fragmentShader, 256, NULL, temp);
-    fprintf( stderr, "Compile failed:\n%s\n", temp);
-
-    glDeleteShader(fragmentShader);
-
-    exit(1);
-  }
-
-
-
-  GLuint program = glCreateProgram();
-  glAttachShader(program, vertexShader);
-  glAttachShader(program, fragmentShader);
-
-  glLinkProgram(program);
-
-  GLint isLinked = 0;
-  glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
-  if (isLinked == GL_FALSE)
-  {
-    GLsizei maxLength = 4096;
-    GLchar infoLog[4096];
-    GLsizei actualLength;
-
-    glGetProgramInfoLog(program, maxLength, &actualLength, infoLog);
-    printf("Warning/Error in GLSL shader:\n");
-    printf("%s\n",infoLog);
-
-    // We don't need the program anymore.
-    glDeleteProgram(program);
-    // Don't leak shaders either.
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    exit(1); 
-  }
-
-  int numAttributes;
-  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &numAttributes);
-  std::cout << "Maximum number of vertex attributes supported: " << numAttributes << std::endl;
-
-  // Always detach shaders after a successful link.
-  glDetachShader(program, vertexShader);
-  glDetachShader(program, fragmentShader);
-
-  return program;
-}
+} 
