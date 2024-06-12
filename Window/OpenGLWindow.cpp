@@ -23,7 +23,7 @@ void processInput(GLFWwindow* window);
 const char* pVSFileName = "src/Window/Shaders/basic.vert";
 const char* pFSFileName = "src/Window/Shaders/basic.frag";
 const unsigned int width = 800; 
-const unsigned int height = 600;
+const unsigned int height = 800;
 
 static void glfw_error_callback(int error, const char* description){
   fprintf(stderr, "GLFW Error %d: %s\n", error, description);
@@ -94,6 +94,8 @@ int main() {
   unsigned int vertexPositionLocation = glGetAttribLocation(program, "aPos");
   unsigned int vertexColorLocation = glGetAttribLocation(program, "aColor");
   unsigned int modelMatrixLocation = glGetUniformLocation(program, "modelMatrix");
+  unsigned int projMatrixLocation = glGetUniformLocation(program, "projMatrix");
+  unsigned int viewMatrixLocation = glGetUniformLocation(program, "viewMatrix");
 
   std::cout << "[" << vertexPositionLocation << ", " << vertexColorLocation << "]" << std::endl;
 
@@ -101,7 +103,7 @@ int main() {
   // ------------------------------------------------------------------
   float vertices[] = {
     // Vertex Data            // Color Data
-    // front face (z: -1) 
+    // back face (z: -1) 
     -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
@@ -109,6 +111,7 @@ int main() {
     -0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
     -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
 
+    // front face (z: +1) 
     -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
      0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
@@ -164,7 +167,7 @@ int main() {
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-
+  
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   while (!glfwWindowShouldClose(window)) {
@@ -193,20 +196,37 @@ int main() {
       ImGui::End();
     }
 
-    static float xf = 0.0f;
-    static float yf = 0.0f;
-    static float zf = 0.0f;
-    static float animationSpeed = 0.0f;
+    static float xRotationf = 0.0f;
+    static float yRotationf = 0.0f;
+    static float zRotationf = 0.0f;
+    static float zAxisf = 0.0f;
+    static float animationSpeed = 0.390f;
     if(show_transformation_window)
     {
       ImGui::Begin("Transformation");                          // Create a window called "Hello, world!" and append into it.
-      ImGui::SliderFloat("XRotate", &xf, 0.0f, glm::two_pi<float>());
-      ImGui::SliderFloat("YRotate", &yf, 0.0f, glm::two_pi<float>());
-      ImGui::SliderFloat("ZRotate", &zf, 0.0f, glm::two_pi<float>());
+      ImGui::SliderFloat("XRotate", &xRotationf, 0.0f, glm::two_pi<float>());
+      ImGui::SliderFloat("YRotate", &yRotationf, 0.0f, glm::two_pi<float>());
+      ImGui::SliderFloat("ZRotate", &zRotationf, 0.0f, glm::two_pi<float>());
+      ImGui::SliderFloat("ZAxis", &zAxisf, -10.0f, 10.0f);
       ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 1.0f);
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
       ImGui::End();
     }
+
+    static float camera_xAxisf = 0.0f;
+    static float camera_yAxisf = 3.0f;
+    static float camera_zAxisf = -1.0f;
+    static float fov = 45.0f;
+    if(show_transformation_window)
+    {
+      ImGui::Begin("Camera Transformation");                          // Create a window called "Hello, world!" and append into it.
+      ImGui::SliderFloat("Fov", &fov, 30.0f, 90.0f);
+      ImGui::SliderFloat("XPosition", &camera_xAxisf, -10.0f, 10.0f);
+      ImGui::SliderFloat("YPosition", &camera_yAxisf, -10.0f, 10.0f);
+      ImGui::SliderFloat("ZPosition", &camera_zAxisf, -10.0f, 10.0f);
+      ImGui::End();
+    }
+
 
 
     int display_w, display_h;
@@ -215,10 +235,20 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::rotate(modelMatrix, animationSpeed * (float)glfwGetTime() + xf, glm::vec3(1.0f, 0.0f, 0.0f));
-    modelMatrix = glm::rotate(modelMatrix, animationSpeed * (float)glfwGetTime() + yf, glm::vec3(0.0f, 1.0f, 0.0f));
-    modelMatrix = glm::rotate(modelMatrix, animationSpeed * (float)glfwGetTime() + zf, glm::vec3(0.0f, 0.0f, 1.0f));
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0, 0.0f, 1.0f * zAxisf));
+    modelMatrix = glm::rotate(modelMatrix, animationSpeed * (float)glfwGetTime() + xRotationf, glm::vec3(1.0f, 0.0f, 0.0f));
+    modelMatrix = glm::rotate(modelMatrix, animationSpeed * (float)glfwGetTime() + yRotationf, glm::vec3(0.0f, 1.0f, 0.0f));
+    modelMatrix = glm::rotate(modelMatrix, animationSpeed * (float)glfwGetTime() + zRotationf, glm::vec3(0.0f, 0.0f, 1.0f));
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+
+    glm::mat4 projMatrix = glm::mat4(1.0f);
+    projMatrix = glm::perspective(glm::radians(fov), (float) width/ (float) height, 0.01f, 1000.0f);
+    glUniformMatrix4fv(projMatrixLocation, 1, GL_FALSE, glm::value_ptr(projMatrix));
+
+    glm::mat4 view;
+    view = glm::lookAt(glm::vec3(camera_xAxisf, camera_yAxisf, camera_zAxisf), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
+
 
     glUseProgram(program);
     glBindVertexArray(VAO);
