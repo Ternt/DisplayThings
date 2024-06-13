@@ -17,6 +17,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
 
 // current path is C:\Dev\DisplayThings\DisplayThings
@@ -24,6 +25,12 @@ const char* pVSFileName = "src/Window/Shaders/basic.vert";
 const char* pFSFileName = "src/Window/Shaders/basic.frag";
 const unsigned int width = 800; 
 const unsigned int height = 800;
+glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, -3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f,  1.0f);
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+float lastX = 400, lastY = 400;
 
 static void glfw_error_callback(int error, const char* description){
   fprintf(stderr, "GLFW Error %d: %s\n", error, description);
@@ -54,7 +61,8 @@ int main() {
     return -1;
   }
   glfwMakeContextCurrent(window);
-  glfwSetMouseButtonCallback(window, mouse_button_callback);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSwapInterval(1); // Enable vsync
 
@@ -105,17 +113,17 @@ int main() {
     // Vertex Data            // Color Data
     // back face (z: -1) 
     -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+    0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+    0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
+    0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
     -0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,
 
     // front face (z: +1) 
     -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+    0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+    0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
+    0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
     -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
     -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,
 
@@ -126,24 +134,24 @@ int main() {
     -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,
     -0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
+    0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
+    0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
+    0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
+    0.5f, -0.5f, -0.5f,  1.0f, 1.0f, 0.0f,
+    0.5f, -0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
+    0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,
 
     -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
+    0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
     -0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 1.0f,
     -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 1.0f,
 
     -0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
+    0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
+    0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
+    0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
     -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,
     -0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 1.0f,
   };
@@ -167,7 +175,7 @@ int main() {
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  
+
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   while (!glfwWindowShouldClose(window)) {
@@ -178,6 +186,11 @@ int main() {
     // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
     // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
     // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
     glfwPollEvents();
     processInput(window);
 
@@ -213,17 +226,12 @@ int main() {
       ImGui::End();
     }
 
-    static float camera_xAxisf = 0.0f;
-    static float camera_yAxisf = 3.0f;
-    static float camera_zAxisf = -1.0f;
+
     static float fov = 45.0f;
     if(show_transformation_window)
     {
       ImGui::Begin("Camera Transformation");                          // Create a window called "Hello, world!" and append into it.
       ImGui::SliderFloat("Fov", &fov, 30.0f, 90.0f);
-      ImGui::SliderFloat("XPosition", &camera_xAxisf, -10.0f, 10.0f);
-      ImGui::SliderFloat("YPosition", &camera_yAxisf, -10.0f, 10.0f);
-      ImGui::SliderFloat("ZPosition", &camera_zAxisf, -10.0f, 10.0f);
       ImGui::End();
     }
 
@@ -246,7 +254,7 @@ int main() {
     glUniformMatrix4fv(projMatrixLocation, 1, GL_FALSE, glm::value_ptr(projMatrix));
 
     glm::mat4 view;
-    view = glm::lookAt(glm::vec3(camera_xAxisf, camera_yAxisf, camera_zAxisf), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
 
 
@@ -291,6 +299,16 @@ void processInput(GLFWwindow* window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
+
+  const float cameraSpeed = 2.5f * deltaTime;
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    cameraPos += cameraSpeed * cameraFront;
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    cameraPos -= cameraSpeed * cameraFront;
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -302,7 +320,16 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 // glfw: whenever a mouse press event has been registered this callback function executes
 // --------------------------------------------------------------------------------------
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
     printf("pressed");
-  }
-} 
+};
+
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+  float xoffset = xpos - lastX;
+  float yoffset = ypos - lastY;
+  lastX = xpos;
+  lastY = ypos;
+
+  std::cout << "(" << xoffset << "," << yoffset << ")" << std::endl;
+}
