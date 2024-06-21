@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 
-#include <glad/glad.h> 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
@@ -61,7 +61,6 @@ int main() {
     return -1;
   }
   glfwMakeContextCurrent(window);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSwapInterval(1); // Enable vsync
