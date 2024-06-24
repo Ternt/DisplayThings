@@ -14,7 +14,6 @@
 
 #include <util.h> 
 
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -91,6 +90,7 @@ int main() {
 
   bool show_demo_window = false;
   bool show_transformation_window = true;
+  bool show_app_dockspace = true;
   ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 
   // Initialization and configuration of OpenGL state machine 
@@ -201,38 +201,116 @@ int main() {
     if (show_demo_window)
       ImGui::ShowDemoWindow(&show_demo_window);
 
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-    {
-      ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-      ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-      ImGui::End();
-    }
-
     static float xRotationf = 0.0f;
     static float yRotationf = 0.0f;
     static float zRotationf = 0.0f;
     static float zAxisf = 0.0f;
+    static float xQuaternion = 0.0f;
+    static float yQuaternion = 0.0f;
+    static float zQuaternion = 0.0f;
+    static float wQuaternion = 0.0f;
     static float animationSpeed = 0.390f;
-    if(show_transformation_window)
-    {
-      ImGui::Begin("Transformation");                          // Create a window called "Hello, world!" and append into it.
-      ImGui::SliderFloat("XRotate", &xRotationf, 0.0f, glm::two_pi<float>());
-      ImGui::SliderFloat("YRotate", &yRotationf, 0.0f, glm::two_pi<float>());
-      ImGui::SliderFloat("ZRotate", &zRotationf, 0.0f, glm::two_pi<float>());
-      ImGui::SliderFloat("ZAxis", &zAxisf, -10.0f, 10.0f);
-      ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 1.0f);
-      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-      ImGui::End();
-    }
-
-
     static float fov = 45.0f;
-    if(show_transformation_window)
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
     {
-      ImGui::Begin("Camera Transformation");                          // Create a window called "Hello, world!" and append into it.
-      ImGui::SliderFloat("Fov", &fov, 30.0f, 90.0f);
+      static bool opt_fullscreen = true;
+      static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+      // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+      // because it would be confusing to have two docking targets within each others.
+      ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+      if (opt_fullscreen)
+      {
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+      }
+      else
+    {
+        dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+      }
+
+      // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+      // and handle the pass-thru hole, so we ask Begin() to not render a background.
+      if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+        window_flags |= ImGuiWindowFlags_NoBackground;
+
+      // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+      // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+      // all active windows docked into it will lose their parent and become undocked.
+      // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+      // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+      ImGui::Begin("DockSpace Demo", &show_app_dockspace, window_flags);
+      ImGui::PopStyleVar();
+
+      if (opt_fullscreen)
+        ImGui::PopStyleVar(2);
+
+      // Submit the DockSpace
+      ImGuiIO& io = ImGui::GetIO();
+      if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+      {
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+      }
+      else
+    {
+      }
+
+      if (ImGui::BeginMenuBar())
+      {
+        if (ImGui::BeginMenu("Options"))
+        {
+          // Disabling fullscreen would allow the window to be moved to the front of other windows,
+          // which we can't undo at the moment without finer window depth/z control.
+          ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
+          ImGui::Separator();
+
+          if (ImGui::MenuItem("Flag: NoDockingOverCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingOverCentralNode) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingOverCentralNode; }
+          if (ImGui::MenuItem("Flag: NoDockingSplit",         "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingSplit) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingSplit; }
+          if (ImGui::MenuItem("Flag: NoUndocking",            "", (dockspace_flags & ImGuiDockNodeFlags_NoUndocking) != 0))                { dockspace_flags ^= ImGuiDockNodeFlags_NoUndocking; }
+          if (ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                   { dockspace_flags ^= ImGuiDockNodeFlags_NoResize; }
+          if (ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))             { dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar; }
+          if (ImGui::MenuItem("Flag: PassthruCentralNode",    "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0, opt_fullscreen)) { dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode; }
+          ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+      }
+
+      {
+        ImGui::Begin("Object Attributes");
+        // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::SliderFloat("XRotate", &xRotationf, 0.0f, glm::two_pi<float>());
+        ImGui::SliderFloat("YRotate", &yRotationf, 0.0f, glm::two_pi<float>());
+        ImGui::SliderFloat("ZRotate", &zRotationf, 0.0f, glm::two_pi<float>());
+        ImGui::SliderFloat("ZAxis", &zAxisf, -10.0f, 10.0f);
+        ImGui::SliderFloat("X", &xQuaternion, 0.0f, 1.0f);
+        ImGui::SliderFloat("Y", &yQuaternion, 0.0f, 1.0f);
+        ImGui::SliderFloat("Z", &zQuaternion, 0.0f, 1.0f);
+        ImGui::SliderFloat("W", &wQuaternion, 0.0f, 1.0f);
+        ImGui::SliderFloat("Animation Speed", &animationSpeed, 0.0f, 1.0f);
+        ImGui::End();
+      }
+
+      {
+        ImGui::Begin("Camera Attributes");
+        ImGui::SliderFloat("Fov", &fov, 30.0f, 90.0f);
+        ImGui::End();
+      }
+
       ImGui::End();
-    }
+    }  
+
+
+    // ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
 
 
 
@@ -308,6 +386,10 @@ void processInput(GLFWwindow* window) {
     cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+  if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) 
+    cameraPos += cameraSpeed * cameraUp;
+  if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) 
+    cameraPos -= cameraSpeed * cameraUp;
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
