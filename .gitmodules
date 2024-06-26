@@ -1,5 +1,5 @@
 [submodules "GLFW"]
   active = true
-  path = vendor/GLFW
+  path = DisplayThings/vendor/GLFW
   url = https://github.com/TheCherno/glfw
   branch = master
