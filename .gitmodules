@@ -1,5 +1,5 @@
 [submodules "GLFW"]
   active = true
   path = vendor/GLFW
-  url = https://github.com/TheCherno/glfw/tree/master
+  url = https://github.com/TheCherno/glfw
   branch = master
