@@ -1,6 +1,3 @@
-[submodule "imgui"]
-	path = DisplayThings/vendor/imgui
-	url = https://github.com/TheCherno/imgui
 [submodule "DisplayThings/vendor/glfw"]
 	path = DisplayThings/vendor/glfw
 	url = https://github.com/glfw/glfw.git
