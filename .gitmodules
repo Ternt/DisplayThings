@@ -5,3 +5,6 @@
 	path = DisplayThings/vendor/imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
+[submodule "DisplayThings/vendor/--force"]
+	path = DisplayThings/vendor/--force
+	url = https://github.com/glfw/glfw.git
