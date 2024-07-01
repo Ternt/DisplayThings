@@ -12,4 +12,3 @@ bin-int/
 
 # Custom ignored files 
 compile_flags.txt
-OpenGLImGui.cpp
