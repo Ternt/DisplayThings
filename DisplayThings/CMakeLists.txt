@@ -7,3 +7,4 @@ add_executable(DTEngine
 
 message("Top level CMakeLists.txt")
 add_subdirectory(vendor/glfw)
+add_subdirectory(vendor/glad)
