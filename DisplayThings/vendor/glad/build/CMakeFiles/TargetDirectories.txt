@@ -1,3 +1,0 @@
-C:/Dev/projects/DisplayThings-experiment/DisplayThings/vendor/glad/build/CMakeFiles/glad.dir
-C:/Dev/projects/DisplayThings-experiment/DisplayThings/vendor/glad/build/CMakeFiles/ALL_BUILD.dir
-C:/Dev/projects/DisplayThings-experiment/DisplayThings/vendor/glad/build/CMakeFiles/ZERO_CHECK.dir
